@@ -38,7 +38,7 @@ If you've ever wanted to:
 
 - Start a long Claude Code session on a beefy desktop, close your laptop, and come back to the output an hour later
 - SSH into WSL on another Windows machine without manually discovering which distro is installed
-- Avoid re-typing `ssh -t winadmin@172.16.1.230 "wsl -d Ubuntu-22.04 -- bash -c 'cd /home/winadmin/projects/foo && screen -r foo || screen -S foo'"` every time
+- Avoid re-typing `ssh -t winadmin@172.16.1.230 "wsl -d Ubuntu-22.04 -- bash -c 'cd /home/winadmin/projects/foo && screen -xRR foo'"` every time
 - Stop Googling "how do I detach a screen session again"
 
 …then this is for you.
@@ -250,15 +250,15 @@ Running `simpleScreen` with no arguments opens a numbered menu:
 
 Standard SSH connection. simpleScreen:
 - Connects over SSH to the Linux host
-- Runs `cd <path>; screen -R <name>` — `screen -R` reattaches an existing session, or creates one if none exists
+- Runs `cd <path>; screen -xRR <name>` — `-xRR` attaches to an existing session (including one already attached elsewhere, for multi-display), or creates one if none exists
 - Ctrl-Q detaches; the SSH connection closes but the screen session keeps running
 
 ### Remote — WSL (on another Windows machine)
 
 The most common setup for cross-machine development. simpleScreen:
 - Connects over SSH to the **Windows** host (the Windows OpenSSH Server feature must be enabled)
-- Wraps the command in PowerShell: `powershell -NonInteractive -Command "wsl -d Ubuntu-22.04 -e bash -c 'cd <path>; screen -R <name>'"` — this routes through PowerShell because Windows `cmd.exe` (the default shell for OpenSSH Server) would otherwise interpret `;`, `|`, `>`, `&&` inside the command as operators
-- Inside WSL, `screen -R` attaches or creates the session
+- Wraps the command in PowerShell: `powershell -NonInteractive -Command "wsl -d Ubuntu-22.04 -e bash -c 'cd <path>; screen -xRR <name>'"` — this routes through PowerShell because Windows `cmd.exe` (the default shell for OpenSSH Server) would otherwise interpret `;`, `|`, `>`, `&&` inside the command as operators
+- Inside WSL, `screen -xRR` attaches (multi-display allowed) or creates the session
 - When you detach, the SSH connection closes, but the screen session persists inside WSL — WSL keeps the distribution alive because a process (screen) is still running
 
 > **Prerequisite:** The **OpenSSH Server** optional feature must be enabled on the remote Windows machine.
@@ -414,7 +414,7 @@ The Windows → WSL case has several layers, each with its own quoting rules. Un
         ↓
   PowerShell parses the script — '...' single-quoted strings are FULLY literal
         ↓
-  wsl.exe -d Ubuntu-22.04 -e bash -c 'cd <path>; screen -R <name>'
+  wsl.exe -d Ubuntu-22.04 -e bash -c 'cd <path>; screen -xRR <name>'
         ↓
   bash inside WSL executes the final command
 ```
@@ -561,7 +561,8 @@ simpleScreen/
 │   │                        connect_session   — builds ssh -t command;
 │   │                                            for WSL, wraps the WSL call
 │   │                                            in PowerShell and uses
-│   │                                            'screen -R' to attach-or-create
+│   │                                            'screen -xRR' to attach-or-create
+│   │                                            (multi-display enabled)
 │   │                        _connect          — shared helper that tries
 │   │                                            key auth then falls back
 │   │                                            to password

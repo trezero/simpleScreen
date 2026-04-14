@@ -72,6 +72,9 @@ def _interactive_mode():
             for s in sessions
         ]
         options = session_labels + ['── Create new session', '── List all sessions', '── Exit']
+        print('  Tip: to leave a session running, detach with Ctrl+A then D')
+        print('       (typing "exit" inside the session will end it)')
+        print()
         choice = ui.menu(options, prompt='Connect to session or choose an action')
 
         if choice <= len(sessions):

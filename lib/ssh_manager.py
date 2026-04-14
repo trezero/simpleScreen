@@ -326,15 +326,16 @@ def connect_session(session: dict, password: str = None):
 
     # ── Build the remote command string ──────────────────────────────────────
     if os_type == 'linux':
-        # screen -R: reattach if a session exists, otherwise create a new one.
-        remote_cmd = f'cd {path}; screen -R {name}'
+        # -x: multi-display attach (allow joining an already-attached session).
+        # -RR: resume existing session, or create one if none exists; the
+        # doubled R auto-picks the first match when multiple are found.
+        remote_cmd = f'cd {path}; screen -xRR {name}'
 
     elif os_type == 'wsl':
         # Route through PowerShell so cmd.exe on the Windows SSH server never
         # sees the bash operators (;, |, >, &&).  PowerShell single-quoted
         # strings are fully literal, so the bash command arrives intact.
-        # screen -R handles both attach-existing and create-new in one flag.
-        bash_cmd = f'cd {path}; screen -R {name}'
+        bash_cmd = f'cd {path}; screen -xRR {name}'
         remote_cmd = f"powershell -NonInteractive -Command \"wsl -d {distro} -e bash -c '{bash_cmd}'\""
 
     elif os_type == 'windows':

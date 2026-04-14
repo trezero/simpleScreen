@@ -38,7 +38,7 @@ def _connect_windows(name: str, path: str):
 
     if wsl_check.returncode == 0:
         # Use WSL screen session
-        inner = f"cd {path} && screen -r {name} 2>/dev/null || screen -S {name}"
+        inner = f"cd {path} && screen -xRR {name}"
         subprocess.run(['wsl', '--', 'bash', '-c', inner])
     else:
         # No WSL — try tmux (Git Bash / MSYS2 users may have it)
@@ -54,7 +54,7 @@ def _connect_windows(name: str, path: str):
 
 def _connect_unix(name: str, path: str):
     """On Linux/Mac use screen directly."""
-    screen_cmd = f"cd {path} && screen -r {name} 2>/dev/null || screen -S {name}"
+    screen_cmd = f"cd {path} && screen -xRR {name}"
     subprocess.run(['bash', '-c', screen_cmd])
 
 
