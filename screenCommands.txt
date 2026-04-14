@@ -1,0 +1,36 @@
+screen Configuration & Cheatsheet
+
+Sample .screenrc file:
+
+Here is an example .screenrc:
+hardstatus alwayslastline
+hardstatus string ‘%{= kG}[ %{G}%H %{g}][%= %{=kw}%?%-\
+Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}]\
+[%{B}%Y-%m-%d %{W}%c %{g}]‘
+screen -t Development1 0
+screen -t Development2 1
+screen -t Compiling 2
+screen -t Logs 3
+
+Screen commands
+
+screen -xRR -x attaches if it hasn’t been detatched, RR resumes a session or
+creates a session if there is not one to resume I have this at the end of my
+.profile so that I automatically resume a session
+
+Ctrl-a Enter command mode (like in vim)
+Ctrl-a c Create new window
+Ctrl-a k Kill current window (useful if it is hanging)
+Ctrl-a p,n Switch to previous or next window (spacebar works the same as n)
+Ctrl-a a Switch to last window (like flashback or previous channel for your
+TV)
+Ctrl-a # Switch to window number #
+Ctrl-a a Equivalent of Ctrl-a in a non-screen world (if your shell is in Emacs
+mode, this goes to the line beginning)
+Ctrl-a d Detach from the current screen session
+Ctrl-a :help Something like this cheat sheet, but not as cool More Cooler
+Stuff
+Ctrl-a S Split the current window horizontally into two regions
+Ctrl-a Cycle between split regions
+Ctrl-a X Remove current revious
+Ctrl-a Q Make current region the only region

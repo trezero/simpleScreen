@@ -1,0 +1,26 @@
+# simpleScreen managed .screenrc
+# This file is pushed to remote systems by simpleScreen on first connect.
+# Do not edit manually — re-run the session wizard to regenerate.
+
+# Status bar at the bottom showing hostname, windows, date/time
+hardstatus alwayslastline
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{=kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B}%Y-%m-%d %{W}%c %{g}]'
+
+# Ctrl-Q detaches from the session and keeps it running in the background.
+# To use other screen commands, press Ctrl-A (unchanged).
+bindkey "^Q" detach
+
+# Large scrollback buffer
+defscrollback 10000
+
+# No startup message
+startup_message off
+
+# Auto-detach on hangup (keeps session alive if connection drops)
+autodetach on
+
+# Use UTF-8
+defutf8 on
+
+# Aggressive window titling
+shelltitle "$ |bash"

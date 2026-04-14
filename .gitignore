@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Editor undo / swap files
+*.un~
+*.swp
+*.swo
+.*.sw?
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Local scratch / test folders
+test/
+scratch/
+
+# Local database / keys / logs (should never be committed even if
+# simpleScreen is run from inside the repo)
+*.db
+sessions.db
+keys/
+*.log

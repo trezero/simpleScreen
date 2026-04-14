@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""
+simpleScreen — A simplified interface for the GNU screen command.
+
+Supports persistent local and remote (SSH) session profiles so you never
+have to remember IP addresses, usernames, paths, or screen syntax again.
+
+Usage:
+  simpleScreen                  Interactive session picker
+  simpleScreen <name>           Connect directly to a named session
+  simpleScreen new              Run the session creation wizard
+  simpleScreen list             List all saved sessions
+  simpleScreen delete <name>    Delete a session profile
+  simpleScreen edit <name>      Edit / re-run wizard for a session
+  simpleScreen help             Show this message
+
+While connected:
+  Ctrl-Q   Detach (session keeps running — reconnect any time)
+  Ctrl-A ? Screen help (all screen commands still work normally)
+"""
+
+import sys
+import os
+
+# Allow imports from the directory that contains this script, regardless of
+# where the user runs the command from.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from lib import db, ui, wizard, ssh_manager, local_manager, credentials
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+def main():
+    db.init_db()
+    args = sys.argv[1:]
+
+    if not args:
+        _interactive_mode()
+    elif args[0] in ('help', '--help', '-h'):
+        print(__doc__)
+    elif args[0] == 'list':
+        _cmd_list()
+    elif args[0] == 'new':
+        _cmd_new()
+    elif args[0] == 'delete' and len(args) > 1:
+        _cmd_delete(args[1])
+    elif args[0] == 'edit' and len(args) > 1:
+        _cmd_edit(args[1])
+    elif args[0] == 'delete':
+        ui.error("Usage: simpleScreen delete <name>")
+        sys.exit(1)
+    elif args[0] == 'edit':
+        ui.error("Usage: simpleScreen edit <name>")
+        sys.exit(1)
+    else:
+        _cmd_connect(args[0])
+
+
+# ── Interactive mode (no arguments) ──────────────────────────────────────────
+
+def _interactive_mode():
+    ui.header()
+    sessions = db.list_sessions()
+
+    if sessions:
+        # Build option list: existing sessions + management options
+        session_labels = [
+            f"{s['name']}  ({s['type']}"
+            + (f", {s['host']}" if s.get('host') else '')
+            + ')'
+            for s in sessions
+        ]
+        options = session_labels + ['── Create new session', '── List all sessions', '── Exit']
+        choice = ui.menu(options, prompt='Connect to session or choose an action')
+
+        if choice <= len(sessions):
+            _connect_session(sessions[choice - 1])
+        elif choice == len(sessions) + 1:
+            _cmd_new()
+        elif choice == len(sessions) + 2:
+            _cmd_list()
+        # else: Exit — just return
+    else:
+        ui.info('No sessions found yet.')
+        print()
+        options = ['Create new session', 'Exit']
+        choice = ui.menu(options, prompt='What would you like to do')
+        if choice == 1:
+            _cmd_new()
+
+
+# ── Sub-commands ──────────────────────────────────────────────────────────────
+
+def _cmd_list():
+    ui.header('Saved Sessions')
+    ui.print_sessions_table(db.list_sessions())
+
+
+def _cmd_new():
+    session = wizard.create_new_session()
+    if session:
+        print()
+        if ui.confirm('Connect now?'):
+            _connect_session(session)
+
+
+def _cmd_delete(name: str):
+    session = db.get_session(name)
+    if not session:
+        ui.error(f"Session '{name}' not found.")
+        sys.exit(1)
+
+    ui.print_session_summary(session)
+    if ui.confirm(f"Permanently delete '{name}'?", default_yes=False):
+        db.delete_session(name)
+        credentials.delete_password(name)
+        ui.success(f"Session '{name}' deleted.")
+    else:
+        ui.info('Cancelled.')
+
+
+def _cmd_edit(name: str):
+    session = db.get_session(name)
+    if not session:
+        ui.error(f"Session '{name}' not found.")
+        sys.exit(1)
+
+    ui.info(f"Re-running setup wizard for '{name}' (existing values shown as defaults).")
+    updated = wizard.create_new_session(prefill=session)
+    if updated and ui.confirm('Connect now?'):
+        _connect_session(updated)
+
+
+def _cmd_connect(name: str):
+    session = db.get_session(name)
+    if not session:
+        ui.error(f"Session '{name}' not found.")
+        ui.info("Run 'simpleScreen list' to see available sessions.")
+        ui.info("Run 'simpleScreen new'  to create a new session.")
+        sys.exit(1)
+    _connect_session(session)
+
+
+# ── Connection dispatcher ─────────────────────────────────────────────────────
+
+def _connect_session(session: dict):
+    db.update_last_connected(session['name'])
+
+    if session['type'] == 'local':
+        local_manager.connect_local_session(session)
+    else:
+        pw = credentials.get_password(session['name'])
+        ssh_manager.connect_session(session, password=pw)
+
+
+# ── Run ───────────────────────────────────────────────────────────────────────
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()
+        ui.info('Cancelled.')
+        sys.exit(0)
