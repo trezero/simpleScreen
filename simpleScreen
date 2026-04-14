@@ -26,7 +26,7 @@ import os
 # where the user runs the command from.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from lib import db, ui, wizard, ssh_manager, local_manager, credentials
+from lib import db, ui, wizard, ssh_manager, local_manager, credentials, scanner
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -71,7 +71,12 @@ def _interactive_mode():
             + ')'
             for s in sessions
         ]
-        options = session_labels + ['── Create new session', '── List all sessions', '── Exit']
+        options = session_labels + [
+            '── Create new session',
+            '── Scan for existing sessions',
+            '── List all sessions',
+            '── Exit',
+        ]
         print('  Tip: to leave a session running, detach with Ctrl+A then D')
         print('       (typing "exit" inside the session will end it)')
         print()
@@ -82,15 +87,19 @@ def _interactive_mode():
         elif choice == len(sessions) + 1:
             _cmd_new()
         elif choice == len(sessions) + 2:
+            _cmd_scan()
+        elif choice == len(sessions) + 3:
             _cmd_list()
         # else: Exit — just return
     else:
         ui.info('No sessions found yet.')
         print()
-        options = ['Create new session', 'Exit']
+        options = ['Create new session', 'Scan for existing sessions', 'Exit']
         choice = ui.menu(options, prompt='What would you like to do')
         if choice == 1:
             _cmd_new()
+        elif choice == 2:
+            _cmd_scan()
 
 
 # ── Sub-commands ──────────────────────────────────────────────────────────────
@@ -106,6 +115,10 @@ def _cmd_new():
         print()
         if ui.confirm('Connect now?'):
             _connect_session(session)
+
+
+def _cmd_scan():
+    scanner.scan_for_sessions()
 
 
 def _cmd_delete(name: str):

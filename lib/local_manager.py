@@ -15,17 +15,18 @@ def connect_local_session(session: dict):
     """Attach to (or create) a local screen/tmux session."""
     name = session['name']
     path = session.get('remote_path') or '~'
+    wsl_distro = session.get('wsl_distro')
 
     print(f'\n  Connecting to local session: {name}')
     print('  Press Ctrl-Q to detach (session keeps running locally).\n')
 
     if os.name == 'nt':
-        _connect_windows(name, path)
+        _connect_windows(name, path, wsl_distro=wsl_distro)
     else:
         _connect_unix(name, path)
 
 
-def _connect_windows(name: str, path: str):
+def _connect_windows(name: str, path: str, wsl_distro: str = None):
     """
     On Windows, prefer running screen inside WSL.
     Falls back to a plain cmd/PowerShell window if WSL is unavailable.
@@ -37,9 +38,13 @@ def _connect_windows(name: str, path: str):
     )
 
     if wsl_check.returncode == 0:
-        # Use WSL screen session
+        # Use WSL screen session; target a specific distro if one was recorded
         inner = f"cd {path} && screen -xRR {name}"
-        subprocess.run(['wsl', '--', 'bash', '-c', inner])
+        wsl_cmd = ['wsl']
+        if wsl_distro:
+            wsl_cmd += ['-d', wsl_distro]
+        wsl_cmd += ['--', 'bash', '-c', inner]
+        subprocess.run(wsl_cmd)
     else:
         # No WSL — try tmux (Git Bash / MSYS2 users may have it)
         tmux_check = subprocess.run(['tmux', '-V'], capture_output=True)
