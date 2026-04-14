@@ -62,11 +62,33 @@ set PYTHON_CMD=py -3
 :python_found
 for /f "tokens=*" %%v in ('%PYTHON_CMD% --version 2^>^&1') do echo   Found: %%v
 
-:: ── 2. Install Python dependencies ───────────────────────────────────────────
+:: ── 2. Create virtual environment ────────────────────────────────────────────
+set INSTALL_DIR=%APPDATA%\simpleScreen
+set VENV_DIR=%INSTALL_DIR%\venv
+set VENV_PYTHON=%VENV_DIR%\Scripts\python.exe
+
 echo.
-echo   Installing Python dependencies...
-%PYTHON_CMD% -m pip install --quiet --upgrade pip
-%PYTHON_CMD% -m pip install --quiet -r "%~dp0requirements.txt"
+echo   Setting up virtual environment in %VENV_DIR%...
+
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+
+if exist "%VENV_DIR%" (
+    echo   Existing venv found — reusing.
+) else (
+    %PYTHON_CMD% -m venv "%VENV_DIR%"
+    if errorlevel 1 (
+        echo   [ERROR] Could not create virtual environment.
+        pause
+        exit /b 1
+    )
+    echo   Virtual environment created.
+)
+
+:: ── 3. Install Python dependencies into the venv ──────────────────────────────
+echo.
+echo   Installing Python dependencies into venv...
+"%VENV_PYTHON%" -m pip install --quiet --upgrade pip
+"%VENV_PYTHON%" -m pip install --quiet -r "%~dp0requirements.txt"
 if errorlevel 1 (
     echo   [ERROR] pip install failed. Check your internet connection and try again.
     pause
@@ -74,13 +96,10 @@ if errorlevel 1 (
 )
 echo   Dependencies installed.
 
-:: ── 3. Copy files to install directory ───────────────────────────────────────
-set INSTALL_DIR=%APPDATA%\simpleScreen
-
+:: ── 4. Copy files to install directory ───────────────────────────────────────
 echo.
 echo   Installing to: %INSTALL_DIR%
 
-if not exist "%INSTALL_DIR%"           mkdir "%INSTALL_DIR%"
 if not exist "%INSTALL_DIR%\lib"       mkdir "%INSTALL_DIR%\lib"
 if not exist "%INSTALL_DIR%\templates" mkdir "%INSTALL_DIR%\templates"
 
@@ -92,7 +111,7 @@ copy /Y "%~dp0templates\*"       "%INSTALL_DIR%\templates\"        >nul
 
 echo   Files copied.
 
-:: ── 4. Add install directory to user PATH ────────────────────────────────────
+:: ── 5. Add install directory to user PATH ────────────────────────────────────
 echo.
 echo   Adding simpleScreen to your PATH...
 
@@ -120,7 +139,7 @@ if errorlevel 1 (
 
 :path_done
 
-:: ── 5. Verify OpenSSH client ──────────────────────────────────────────────────
+:: ── 6. Verify OpenSSH client ──────────────────────────────────────────────────
 echo.
 echo   Checking for OpenSSH client...
 where ssh >nul 2>&1

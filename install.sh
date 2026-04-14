@@ -48,24 +48,36 @@ fi
 PY_VERSION=$("$PYTHON" --version)
 ok "Found: $PY_VERSION"
 
-# ── 2. Install Python dependencies ────────────────────────────────────────────
+# ── 2. Create virtual environment ─────────────────────────────────────────────
 echo ""
-info "Installing Python dependencies..."
+info "Setting up virtual environment..."
 
-if ! "$PYTHON" -m pip install --quiet --upgrade pip; then
+VENV_DIR="$INSTALL_DIR/venv"
+mkdir -p "$INSTALL_DIR"
+
+if [ -d "$VENV_DIR" ]; then
+    info "Existing venv found — reusing."
+else
+    "$PYTHON" -m venv "$VENV_DIR" || err "Could not create virtual environment."
+    ok "Virtual environment created."
+fi
+
+VENV_PYTHON="$VENV_DIR/bin/python"
+
+# ── 3. Install Python dependencies into the venv ──────────────────────────────
+echo ""
+info "Installing Python dependencies into venv..."
+
+if ! "$VENV_PYTHON" -m pip install --quiet --upgrade pip; then
     warn "Could not upgrade pip — continuing anyway."
 fi
 
-if ! "$PYTHON" -m pip install --quiet -r "$SCRIPT_DIR/requirements.txt"; then
-    # Try with --user flag
-    warn "Retrying with --user flag..."
-    "$PYTHON" -m pip install --quiet --user -r "$SCRIPT_DIR/requirements.txt" \
-        || err "pip install failed. Check your internet connection."
-fi
+"$VENV_PYTHON" -m pip install --quiet -r "$SCRIPT_DIR/requirements.txt" \
+    || err "pip install failed. Check your internet connection."
 
 ok "Dependencies installed."
 
-# ── 3. Copy files to install directory ────────────────────────────────────────
+# ── 4. Copy files to install directory ────────────────────────────────────────
 echo ""
 info "Installing to: $INSTALL_DIR"
 
@@ -81,19 +93,19 @@ cp "$SCRIPT_DIR/templates/"*       "$INSTALL_DIR/templates/"
 chmod +x "$INSTALL_DIR/simpleScreen"
 ok "Files copied."
 
-# ── 4. Create launcher in PATH ─────────────────────────────────────────────────
+# ── 5. Create launcher in PATH ─────────────────────────────────────────────────
 echo ""
 info "Creating launcher at $BIN_DIR/simpleScreen..."
 
-# Write a small wrapper that calls the installed script via the correct Python
+# Write a wrapper that calls the installed script via the venv Python
 cat > "$BIN_DIR/simpleScreen" <<EOF
 #!/usr/bin/env bash
-exec "$PYTHON" "$INSTALL_DIR/simpleScreen" "\$@"
+exec "$VENV_DIR/bin/python" "$INSTALL_DIR/simpleScreen" "\$@"
 EOF
 chmod +x "$BIN_DIR/simpleScreen"
 ok "Launcher created."
 
-# ── 5. Ensure ~/.local/bin is in PATH ─────────────────────────────────────────
+# ── 6. Ensure ~/.local/bin is in PATH ─────────────────────────────────────────
 if ! echo "$PATH" | grep -q "$BIN_DIR"; then
     echo ""
     warn "$BIN_DIR is not in your PATH."
@@ -120,7 +132,7 @@ if ! echo "$PATH" | grep -q "$BIN_DIR"; then
     fi
 fi
 
-# ── 6. Check for screen ────────────────────────────────────────────────────────
+# ── 7. Check for screen ────────────────────────────────────────────────────────
 echo ""
 info "Checking for GNU screen..."
 if command -v screen &>/dev/null; then
